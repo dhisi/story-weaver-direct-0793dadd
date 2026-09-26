@@ -156,6 +156,19 @@ export function findIndicStyleProblems(text: string, lang: IndicLang): StyleRepo
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length < 30) return { problems };
 
+  if (lang === "mr") {
+    // Konkani / dialect drift the model slips into: चो endings, ल्लं participles.
+    const drift = [
+      ...(text.match(/[\u0900-\u097f]+(?:चो|चें|तें|ल्लं|ल्ले|ल्ला)\b/g) ?? []),
+      ...(text.match(/\b(हांव|आसा|आसात|केल्लें|जाल्यार)\b/g) ?? []),
+    ];
+    if (drift.length) {
+      problems.push(
+        `Konkani or dialect forms instead of standard Marathi (${[...new Set(drift)].slice(0, 8).join(", ")}) — use standard written Marathi endings (चा/ची/चे, लं/ले)`,
+      );
+    }
+  }
+
   const stiffMap = lang === "hi" ? HINDI_STIFF : MARATHI_STIFF;
   const hits: string[] = [];
   for (const [bookish, plain] of Object.entries(stiffMap)) {

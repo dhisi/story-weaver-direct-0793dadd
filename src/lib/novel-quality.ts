@@ -76,6 +76,25 @@ export function findNovelQualityProblems(
   if ([...sentenceCounts.values()].some((count) => count >= 4)) {
     problems.push("sentences are looping");
   }
+  // Runaway "and X, and Y, and Z" chains and repeated word groups: the model
+  // sometimes stalls and pads a scene with the same clause over and over.
+  const plainWords = text.toLocaleLowerCase().match(/[\p{L}\p{N}']+/gu) ?? [];
+  const shingles = new Map<string, number>();
+  for (let i = 0; i + 4 <= plainWords.length; i++) {
+    const key = plainWords.slice(i, i + 4).join(" ");
+    shingles.set(key, (shingles.get(key) ?? 0) + 1);
+  }
+  if ([...shingles.values()].some((count) => count >= 6)) {
+    problems.push("the same word group is repeated over and over");
+  }
+  if (
+    text
+      .split(/(?<=[.!?।])\s+/u)
+      .some((sentence) => (sentence.match(/\band\b/gi) ?? []).length >= 8)
+  ) {
+    problems.push("run-on sentences padded with endless 'and' clauses");
+  }
+
   if (hasPhraseLoop(text, lang)) {
     problems.push("a phrase pattern is repeated excessively");
   }
